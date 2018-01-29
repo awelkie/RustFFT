@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use num_complex::Complex;
-use common::{FFTnum, verify_length, verify_length_divisible};
+use common::{FftNum, verify_length, verify_length_divisible};
 
 use math_utils;
 use array_utils;
 
-use ::{Length, IsInverse, FFT};
+use ::{Length, IsInverse, Fft};
 
 /// Implementation of the [Good-Thomas Algorithm (AKA Prime Factor Algorithm)](https://en.wikipedia.org/wiki/Prime-factor_FFT_algorithm)
 ///
@@ -18,7 +18,7 @@ use ::{Length, IsInverse, FFT};
 /// ~~~
 /// // Computes a forward FFT of size 1200, using the Good-Thomas Algorithm
 /// use rustfft::algorithm::GoodThomasAlgorithm;
-/// use rustfft::{FFT, FFTplanner};
+/// use rustfft::{Fft, FftPlanner};
 /// use rustfft::num_complex::Complex;
 /// use rustfft::num_traits::Zero;
 ///
@@ -27,7 +27,7 @@ use ::{Length, IsInverse, FFT};
 ///
 /// // we need to find an n1 and n2 such that n1 * n2 == 1200 and GCD(n1, n2) == 1
 /// // n1 = 48 and n2 = 25 satisfies this
-/// let mut planner = FFTplanner::new(false);
+/// let mut planner = FftPlanner::new(false);
 /// let inner_fft_n1 = planner.plan_fft(48);
 /// let inner_fft_n2 = planner.plan_fft(25);
 ///
@@ -38,11 +38,11 @@ use ::{Length, IsInverse, FFT};
 pub struct GoodThomasAlgorithm<T> {
     width: usize,
     // width_inverse: usize,
-    width_size_fft: Arc<FFT<T>>,
+    width_size_fft: Arc<Fft<T>>,
 
     height: usize,
     // height_inverse: usize,
-    height_size_fft: Arc<FFT<T>>,
+    height_size_fft: Arc<Fft<T>>,
 
     input_map: Box<[usize]>,
     output_map: Box<[usize]>,
@@ -50,11 +50,11 @@ pub struct GoodThomasAlgorithm<T> {
     inverse: bool,
 }
 
-impl<T: FFTnum> GoodThomasAlgorithm<T> {
-    /// Creates a FFT instance which will process inputs/outputs of size `n1_fft.len() * n2_fft.len()`
+impl<T: FftNum> GoodThomasAlgorithm<T> {
+    /// Creates a Fft instance which will process inputs/outputs of size `n1_fft.len() * n2_fft.len()`
     ///
     /// GCD(n1.len(), n2.len()) must be equal to 1
-    pub fn new(n1_fft: Arc<FFT<T>>, n2_fft: Arc<FFT<T>>) -> Self {
+    pub fn new(n1_fft: Arc<Fft<T>>, n2_fft: Arc<Fft<T>>) -> Self {
         assert_eq!(
             n1_fft.is_inverse(), n2_fft.is_inverse(), 
             "n1_fft and n2_fft must both be inverse, or neither. got n1 inverse={}, n2 inverse={}",
@@ -133,7 +133,7 @@ impl<T: FFTnum> GoodThomasAlgorithm<T> {
     }
 }
 
-impl<T: FFTnum> FFT<T> for GoodThomasAlgorithm<T> {
+impl<T: FftNum> Fft<T> for GoodThomasAlgorithm<T> {
     fn process(&self, input: &mut [Complex<T>], output: &mut [Complex<T>]) {
         verify_length(input, output, self.len());
 
@@ -166,7 +166,7 @@ mod unit_tests {
     use super::*;
     use std::sync::Arc;
     use test_utils::check_fft_algorithm;
-    use algorithm::DFT;
+    use algorithm::Dft;
 
     #[test]
     fn test_good_thomas() {
@@ -184,8 +184,8 @@ mod unit_tests {
     }
 
     fn test_good_thomas_with_lengths(width: usize, height: usize) {
-        let width_fft = Arc::new(DFT::new(width, false)) as Arc<FFT<f32>>;
-        let height_fft = Arc::new(DFT::new(height, false)) as Arc<FFT<f32>>;
+        let width_fft = Arc::new(Dft::new(width, false)) as Arc<Fft<f32>>;
+        let height_fft = Arc::new(Dft::new(height, false)) as Arc<Fft<f32>>;
 
         let fft = GoodThomasAlgorithm::new(width_fft, height_fft);
 

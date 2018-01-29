@@ -2,24 +2,24 @@
 
 //! RustFFT allows users to compute arbitrary-sized FFTs in O(nlogn) time.
 //!
-//! The recommended way to use RustFFT is to create a [`FFTplanner`](struct.FFTplanner.html) instance and then call its
+//! The recommended way to use RustFFT is to create a [`FftPlanner`](struct.FftPlanner.html) instance and then call its
 //! `plan_fft` method. This method will automatically choose which FFT algorithms are best
 //! for a given size and initialize the required buffers and precomputed data.
 //!
 //! ```
 //! // Perform a forward FFT of size 1234
-//! use rustfft::FFTplanner;
+//! use rustfft::FftPlanner;
 //! use rustfft::num_complex::Complex;
 //! use rustfft::num_traits::Zero;
 //!
 //! let mut input:  Vec<Complex<f32>> = vec![Complex::zero(); 1234];
 //! let mut output: Vec<Complex<f32>> = vec![Complex::zero(); 1234];
 //!
-//! let mut planner = FFTplanner::new(false);
+//! let mut planner = FftPlanner::new(false);
 //! let fft = planner.plan_fft(1234);
 //! fft.process(&mut input, &mut output);
 //! ```
-//! The planner returns trait objects of the [`FFT`](trait.FFT.html) trait, allowing for FFT sizes that aren't known
+//! The planner returns trait objects of the [`Fft`](trait.Fft.html) trait, allowing for FFT sizes that aren't known
 //! until runtime.
 //! 
 //! RustFFT also exposes individual FFT algorithms. If you know beforehand that you need a power-of-two FFT, you can
@@ -28,7 +28,7 @@
 //! ```
 //! // Computes a forward FFT of size 4096
 //! use rustfft::algorithm::Radix4;
-//! use rustfft::FFT;
+//! use rustfft::Fft;
 //! use rustfft::num_complex::Complex;
 //! use rustfft::num_traits::Zero;
 //!
@@ -39,7 +39,7 @@
 //! fft.process(&mut input, &mut output);
 //! ```
 //!
-//! For the vast majority of situations, simply using the [`FFTplanner`](struct.FFTplanner.html) will be enough, but
+//! For the vast majority of situations, simply using the [`FftPlanner`](struct.FftPlanner.html) will be enough, but
 //! advanced users may have better insight than the planner into which algorithms are best for a specific size. See the
 //! [`algorithm`](algorithm/index.html) module for a complete list of algorithms implemented by RustFFT.
 
@@ -58,8 +58,8 @@ mod common;
 
 use num_complex::Complex;
 
-pub use plan::FFTplanner;
-pub use common::FFTnum;
+pub use plan::FftPlanner;
+pub use common::FftNum;
 
 
 
@@ -76,7 +76,7 @@ pub trait IsInverse {
 }
 
 /// An umbrella trait for all available FFT algorithms
-pub trait FFT<T: FFTnum>: Length + IsInverse + Sync + Send {
+pub trait Fft<T: FftNum>: Length + IsInverse + Sync + Send {
     /// Computes an FFT on the `input` buffer and places the result in the `output` buffer.
     ///
     /// This method uses the `input` buffer as scratch space, so the contents of `input` should be considered garbage

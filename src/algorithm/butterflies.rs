@@ -1,13 +1,13 @@
 use num_complex::Complex;
 use num_traits::{FromPrimitive, Zero};
 
-use common::{FFTnum, verify_length, verify_length_divisible};
+use common::{FftNum, verify_length, verify_length_divisible};
 
 use twiddles;
-use ::{Length, IsInverse, FFT};
+use ::{Length, IsInverse, Fft};
 
 
-pub trait FFTButterfly<T: FFTnum>: Length + IsInverse + Sync + Send {
+pub trait FftButterfly<T: FftNum>: Length + IsInverse + Sync + Send {
     /// Computes the FFT in-place in the given buffer
     ///
     /// # Safety
@@ -45,14 +45,14 @@ impl Butterfly2 {
     }
 
     #[inline(always)]
-    unsafe fn perform_fft_direct<T: FFTnum>(left: &mut Complex<T>, right: &mut Complex<T>) {
+    unsafe fn perform_fft_direct<T: FftNum>(left: &mut Complex<T>, right: &mut Complex<T>) {
         let temp = *left + *right;
         
         *right = *left - *right;
         *left = temp;
     }
 }
-impl<T: FFTnum> FFTButterfly<T> for Butterfly2 {
+impl<T: FftNum> FftButterfly<T> for Butterfly2 {
     #[inline(always)]
     unsafe fn process_inplace(&self, buffer: &mut [Complex<T>]) {
         let temp = *buffer.get_unchecked(0) + *buffer.get_unchecked(1);
@@ -67,7 +67,7 @@ impl<T: FFTnum> FFTButterfly<T> for Butterfly2 {
     	}
     }
 }
-impl<T: FFTnum> FFT<T> for Butterfly2 {
+impl<T: FftNum> Fft<T> for Butterfly2 {
     fn process(&self, input: &mut [Complex<T>], output: &mut [Complex<T>]) {
         verify_length(input, output, self.len());
         output.copy_from_slice(input);
@@ -100,7 +100,7 @@ pub struct Butterfly3<T> {
 	pub twiddle: Complex<T>,
     inverse: bool,
 }
-impl<T: FFTnum> Butterfly3<T> {
+impl<T: FftNum> Butterfly3<T> {
 	#[inline(always)]
     pub fn new(inverse: bool) -> Self {
         Butterfly3 {
@@ -117,7 +117,7 @@ impl<T: FFTnum> Butterfly3<T> {
         }
     }
 }
-impl<T: FFTnum> FFTButterfly<T> for Butterfly3<T> {
+impl<T: FftNum> FftButterfly<T> for Butterfly3<T> {
     #[inline(always)]
     unsafe fn process_inplace(&self, buffer: &mut [Complex<T>]) {
         let butterfly2 = Butterfly2::new(self.inverse);
@@ -139,7 +139,7 @@ impl<T: FFTnum> FFTButterfly<T> for Butterfly3<T> {
         }
     }
 }
-impl<T: FFTnum> FFT<T> for Butterfly3<T> {
+impl<T: FftNum> Fft<T> for Butterfly3<T> {
     fn process(&self, input: &mut [Complex<T>], output: &mut [Complex<T>]) {
         verify_length(input, output, self.len());
         output.copy_from_slice(input);
@@ -180,7 +180,7 @@ impl Butterfly4
         Butterfly4 { inverse:inverse }
     }
 }
-impl<T: FFTnum> FFTButterfly<T> for Butterfly4 {
+impl<T: FftNum> FftButterfly<T> for Butterfly4 {
     #[inline(always)]
     unsafe fn process_inplace(&self, buffer: &mut [Complex<T>]) {
         let butterfly2 = Butterfly2::new(self.inverse);
@@ -216,7 +216,7 @@ impl<T: FFTnum> FFTButterfly<T> for Butterfly4 {
         }
     }
 }
-impl<T: FFTnum> FFT<T> for Butterfly4 {
+impl<T: FftNum> Fft<T> for Butterfly4 {
     fn process(&self, input: &mut [Complex<T>], output: &mut [Complex<T>]) {
         verify_length(input, output, self.len());
         output.copy_from_slice(input);
@@ -251,7 +251,7 @@ pub struct Butterfly5<T> {
 	inner_fft_multiply: [Complex<T>; 4],
 	inverse: bool,
 }
-impl<T: FFTnum> Butterfly5<T> {
+impl<T: FftNum> Butterfly5<T> {
     pub fn new(inverse: bool) -> Self {
 
     	//we're going to hardcode a raders algorithm of size 5 and an inner FFT of size 4
@@ -271,7 +271,7 @@ impl<T: FFTnum> Butterfly5<T> {
         }
     }
 }
-impl<T: FFTnum> FFTButterfly<T> for Butterfly5<T> {
+impl<T: FftNum> FftButterfly<T> for Butterfly5<T> {
     #[inline(always)]
     unsafe fn process_inplace(&self, buffer: &mut [Complex<T>]) {
         //we're going to reorder the buffer directly into our scratch vec
@@ -310,7 +310,7 @@ impl<T: FFTnum> FFTButterfly<T> for Butterfly5<T> {
         }
     }
 }
-impl<T: FFTnum> FFT<T> for Butterfly5<T> {
+impl<T: FftNum> Fft<T> for Butterfly5<T> {
     fn process(&self, input: &mut [Complex<T>], output: &mut [Complex<T>]) {
         verify_length(input, output, self.len());
         output.copy_from_slice(input);
@@ -343,7 +343,7 @@ impl<T> IsInverse for Butterfly5<T> {
 pub struct Butterfly6<T> {
 	butterfly3: Butterfly3<T>,
 }
-impl<T: FFTnum> Butterfly6<T> {
+impl<T: FftNum> Butterfly6<T> {
 
     pub fn new(inverse: bool) -> Self {
         Butterfly6 { butterfly3: Butterfly3::new(inverse) }
@@ -352,7 +352,7 @@ impl<T: FFTnum> Butterfly6<T> {
         Butterfly6 { butterfly3: Butterfly3::inverse_of(&fft.butterfly3) }
     }
 }
-impl<T: FFTnum> FFTButterfly<T> for Butterfly6<T> {
+impl<T: FftNum> FftButterfly<T> for Butterfly6<T> {
     #[inline(always)]
     unsafe fn process_inplace(&self, buffer: &mut [Complex<T>]) {
         //since GCD(2,3) == 1 we're going to hardcode a step of the Good-Thomas algorithm to avoid twiddle factors
@@ -401,7 +401,7 @@ impl<T: FFTnum> FFTButterfly<T> for Butterfly6<T> {
         }
     }
 }
-impl<T: FFTnum> FFT<T> for Butterfly6<T> {
+impl<T: FftNum> Fft<T> for Butterfly6<T> {
     fn process(&self, input: &mut [Complex<T>], output: &mut [Complex<T>]) {
         verify_length(input, output, self.len());
         output.copy_from_slice(input);
@@ -433,7 +433,7 @@ pub struct Butterfly7<T> {
     inner_fft: Butterfly6<T>,
     inner_fft_multiply: [Complex<T>; 6]
 }
-impl<T: FFTnum> Butterfly7<T> {
+impl<T: FftNum> Butterfly7<T> {
     pub fn new(inverse: bool) -> Self {
 
         //we're going to hardcode a raders algorithm of size 5 and an inner FFT of size 4
@@ -454,7 +454,7 @@ impl<T: FFTnum> Butterfly7<T> {
         }
     }
 }
-impl<T: FFTnum> FFTButterfly<T> for Butterfly7<T> {
+impl<T: FftNum> FftButterfly<T> for Butterfly7<T> {
     #[inline(always)]
     unsafe fn process_inplace(&self, buffer: &mut [Complex<T>]) {
         //we're going to reorder the buffer directly into our scratch vec
@@ -503,7 +503,7 @@ impl<T: FFTnum> FFTButterfly<T> for Butterfly7<T> {
         }
     }
 }
-impl<T: FFTnum> FFT<T> for Butterfly7<T> {
+impl<T: FftNum> Fft<T> for Butterfly7<T> {
     fn process(&self, input: &mut [Complex<T>], output: &mut [Complex<T>]) {
         verify_length(input, output, self.len());
         output.copy_from_slice(input);
@@ -536,7 +536,7 @@ pub struct Butterfly8<T> {
     twiddle: Complex<T>,
     inverse: bool,
 }
-impl<T: FFTnum> Butterfly8<T>
+impl<T: FftNum> Butterfly8<T>
 {
     #[inline(always)]
     pub fn new(inverse: bool) -> Self {
@@ -559,7 +559,7 @@ impl<T: FFTnum> Butterfly8<T>
         buffer[5] = temp6;
     }
 }
-impl<T: FFTnum> FFTButterfly<T> for Butterfly8<T> {
+impl<T: FftNum> FftButterfly<T> for Butterfly8<T> {
     #[inline(always)]
     unsafe fn process_inplace(&self, buffer: &mut [Complex<T>]) {
         let butterfly2 = Butterfly2::new(self.inverse);
@@ -618,7 +618,7 @@ impl<T: FFTnum> FFTButterfly<T> for Butterfly8<T> {
         }
     }
 }
-impl<T: FFTnum> FFT<T> for Butterfly8<T> {
+impl<T: FftNum> Fft<T> for Butterfly8<T> {
     fn process(&self, input: &mut [Complex<T>], output: &mut [Complex<T>]) {
         verify_length(input, output, self.len());
         output.copy_from_slice(input);
@@ -654,7 +654,7 @@ pub struct Butterfly16<T> {
     twiddle3: Complex<T>,
     inverse: bool,
 }
-impl<T: FFTnum> Butterfly16<T>
+impl<T: FftNum> Butterfly16<T>
 {
     #[inline(always)]
     pub fn new(inverse: bool) -> Self {
@@ -667,7 +667,7 @@ impl<T: FFTnum> Butterfly16<T>
         }
     }
 }
-impl<T: FFTnum> FFTButterfly<T> for Butterfly16<T> {
+impl<T: FftNum> FftButterfly<T> for Butterfly16<T> {
     #[inline(always)]
     unsafe fn process_inplace(&self, buffer: &mut [Complex<T>]) {
         let butterfly4 = Butterfly4::new(self.inverse);
@@ -751,7 +751,7 @@ impl<T: FFTnum> FFTButterfly<T> for Butterfly16<T> {
         }
     }
 }
-impl<T: FFTnum> FFT<T> for Butterfly16<T> {
+impl<T: FftNum> Fft<T> for Butterfly16<T> {
     fn process(&self, input: &mut [Complex<T>], output: &mut [Complex<T>]) {
         verify_length(input, output, self.len());
         output.copy_from_slice(input);
@@ -786,7 +786,7 @@ pub struct Butterfly32<T> {
     twiddles: [Complex<T>; 7],
     inverse: bool,
 }
-impl<T: FFTnum> Butterfly32<T>
+impl<T: FftNum> Butterfly32<T>
 {
     #[inline(always)]
     pub fn new(inverse: bool) -> Self {
@@ -806,7 +806,7 @@ impl<T: FFTnum> Butterfly32<T>
         }
     }
 }
-impl<T: FFTnum> FFTButterfly<T> for Butterfly32<T> {
+impl<T: FftNum> FftButterfly<T> for Butterfly32<T> {
     #[inline(always)]
     unsafe fn process_inplace(&self, buffer: &mut [Complex<T>]) {
         // we're going to hardcode a step of split radix
@@ -940,7 +940,7 @@ impl<T: FFTnum> FFTButterfly<T> for Butterfly32<T> {
         }
     }
 }
-impl<T: FFTnum> FFT<T> for Butterfly32<T> {
+impl<T: FftNum> Fft<T> for Butterfly32<T> {
     fn process(&self, input: &mut [Complex<T>], output: &mut [Complex<T>]) {
         verify_length(input, output, self.len());
         output.copy_from_slice(input);
@@ -973,7 +973,7 @@ impl<T> IsInverse for Butterfly32<T> {
 mod unit_tests {
 	use super::*;
 	use test_utils::{random_signal, compare_vectors, check_fft_algorithm};
-	use algorithm::DFT;
+	use algorithm::Dft;
 	use num_traits::Zero;
 
     //the tests for all butterflies will be identical except for the identifiers used and size
@@ -1005,14 +1005,14 @@ mod unit_tests {
     test_butterfly_func!(test_butterfly32, Butterfly32, 32);
     
 
-    fn check_butterfly(butterfly: &FFTButterfly<f32>, size: usize, inverse: bool) {
+    fn check_butterfly(butterfly: &FftButterfly<f32>, size: usize, inverse: bool) {
         assert_eq!(butterfly.len(), size, "Butterfly algorithm reported wrong size");
         assert_eq!(butterfly.is_inverse(), inverse, "Butterfly algorithm reported wrong inverse value");
 
         let n = 5;
 
         //test the forward direction
-        let dft = DFT::new(size, inverse);
+        let dft = Dft::new(size, inverse);
 
         // set up buffers
         let mut expected_input = random_signal(size * n);

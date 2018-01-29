@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use num_complex::Complex;
 
-use common::{FFTnum, verify_length, verify_length_divisible};
+use common::{FftNum, verify_length, verify_length_divisible};
 
-use ::{Length, IsInverse, FFT};
-use algorithm::butterflies::FFTButterfly;
+use ::{Length, IsInverse, Fft};
+use algorithm::butterflies::FftButterfly;
 use array_utils;
 use twiddles;
 
@@ -17,7 +17,7 @@ use twiddles;
 /// ~~~
 /// // Computes a forward FFT of size 1200, using the Mixed-Radix Algorithm
 /// use rustfft::algorithm::MixedRadix;
-/// use rustfft::{FFT, FFTplanner};
+/// use rustfft::{Fft, FftPlanner};
 /// use rustfft::num_complex::Complex;
 /// use rustfft::num_traits::Zero;
 ///
@@ -26,7 +26,7 @@ use twiddles;
 ///
 /// // we need to find an n1 and n2 such that n1 * n2 == 1200
 /// // n1 = 30 and n2 = 40 satisfies this
-/// let mut planner = FFTplanner::new(false);
+/// let mut planner = FftPlanner::new(false);
 /// let inner_fft_n1 = planner.plan_fft(30);
 /// let inner_fft_n2 = planner.plan_fft(40);
 ///
@@ -37,18 +37,18 @@ use twiddles;
 
 pub struct MixedRadix<T> {
     width: usize,
-    width_size_fft: Arc<FFT<T>>,
+    width_size_fft: Arc<Fft<T>>,
 
     height: usize,
-    height_size_fft: Arc<FFT<T>>,
+    height_size_fft: Arc<Fft<T>>,
 
     twiddles: Box<[Complex<T>]>,
     inverse: bool,
 }
 
-impl<T: FFTnum> MixedRadix<T> {
-    /// Creates a FFT instance which will process inputs/outputs of size `n1_fft.len() * n2_fft.len()`
-    pub fn new(width_fft: Arc<FFT<T>>, height_fft: Arc<FFT<T>>) -> Self {
+impl<T: FftNum> MixedRadix<T> {
+    /// Creates a Fft instance which will process inputs/outputs of size `n1_fft.len() * n2_fft.len()`
+    pub fn new(width_fft: Arc<Fft<T>>, height_fft: Arc<Fft<T>>) -> Self {
         assert_eq!(
             width_fft.is_inverse(), height_fft.is_inverse(), 
             "width_fft and height_fft must both be inverse, or neither. got width inverse={}, height inverse={}",
@@ -105,7 +105,7 @@ impl<T: FFTnum> MixedRadix<T> {
         array_utils::transpose(self.width, self.height, input, output);
     }
 }
-impl<T: FFTnum> FFT<T> for MixedRadix<T> {
+impl<T: FftNum> Fft<T> for MixedRadix<T> {
     fn process(&self, input: &mut [Complex<T>], output: &mut [Complex<T>]) {
         verify_length(input, output, self.len());
 
@@ -145,7 +145,7 @@ impl<T> IsInverse for MixedRadix<T> {
 /// use std::sync::Arc;
 /// use rustfft::algorithm::MixedRadixDoubleButterfly;
 /// use rustfft::algorithm::butterflies::{Butterfly7, Butterfly8};
-/// use rustfft::FFT;
+/// use rustfft::Fft;
 /// use rustfft::num_complex::Complex;
 /// use rustfft::num_traits::Zero;
 ///
@@ -163,18 +163,18 @@ impl<T> IsInverse for MixedRadix<T> {
 /// ~~~
 pub struct MixedRadixDoubleButterfly<T> {
     width: usize,
-    width_size_fft: Arc<FFTButterfly<T>>,
+    width_size_fft: Arc<FftButterfly<T>>,
 
     height: usize,
-    height_size_fft: Arc<FFTButterfly<T>>,
+    height_size_fft: Arc<FftButterfly<T>>,
 
     twiddles: Box<[Complex<T>]>,
     inverse: bool,
 }
 
-impl<T: FFTnum> MixedRadixDoubleButterfly<T> {
+impl<T: FftNum> MixedRadixDoubleButterfly<T> {
     /// Creates a FFT instance which will process inputs/outputs of size `n1_fft.len() * n2_fft.len()`
-    pub fn new(width_fft: Arc<FFTButterfly<T>>, height_fft: Arc<FFTButterfly<T>>) -> Self {
+    pub fn new(width_fft: Arc<FftButterfly<T>>, height_fft: Arc<FftButterfly<T>>) -> Self {
         assert_eq!(
             width_fft.is_inverse(), height_fft.is_inverse(), 
             "width_fft and height_fft must both be inverse, or neither. got width inverse={}, height inverse={}",
@@ -232,7 +232,7 @@ impl<T: FFTnum> MixedRadixDoubleButterfly<T> {
     }
 }
 
-impl<T: FFTnum> FFT<T> for MixedRadixDoubleButterfly<T> {
+impl<T: FftNum> Fft<T> for MixedRadixDoubleButterfly<T> {
     fn process(&self, input: &mut [Complex<T>], output: &mut [Complex<T>]) {
         verify_length(input, output, self.len());
 
@@ -267,7 +267,7 @@ mod unit_tests {
     use super::*;
     use std::sync::Arc;
     use test_utils::check_fft_algorithm;
-    use algorithm::{butterflies, DFT};
+    use algorithm::{butterflies, Dft};
 
     #[test]
     fn test_mixed_radix() {
@@ -293,8 +293,8 @@ mod unit_tests {
 
 
     fn test_mixed_radix_with_lengths(width: usize, height: usize, inverse: bool) {
-        let width_fft = Arc::new(DFT::new(width, inverse)) as Arc<FFT<f32>>;
-        let height_fft = Arc::new(DFT::new(height, inverse)) as Arc<FFT<f32>>;
+        let width_fft = Arc::new(Dft::new(width, inverse)) as Arc<Fft<f32>>;
+        let height_fft = Arc::new(Dft::new(height, inverse)) as Arc<Fft<f32>>;
 
         let fft = MixedRadix::new(width_fft, height_fft);
 
@@ -310,7 +310,7 @@ mod unit_tests {
         check_fft_algorithm(&fft, width * height, inverse);
     }
 
-    fn make_butterfly(len: usize, inverse: bool) -> Arc<FFTButterfly<f32>> {
+    fn make_butterfly(len: usize, inverse: bool) -> Arc<FftButterfly<f32>> {
         match len {
             2 => Arc::new(butterflies::Butterfly2::new(inverse)),
             3 => Arc::new(butterflies::Butterfly3::new(inverse)),
