@@ -1,9 +1,9 @@
 use num_complex::Complex;
 use num_traits::Zero;
 
-use common::{FFTnum, verify_length, verify_length_divisible};
+use common::{FftNum, verify_length, verify_length_divisible};
 
-use ::{Length, IsInverse, FFT};
+use ::{Length, IsInverse, Fft};
 use twiddles;
 
 /// Naive O(n^2 ) Discrete Fourier Transform implementation
@@ -14,26 +14,26 @@ use twiddles;
 ///
 /// ~~~
 /// // Computes a naive DFT of size 1234
-/// use rustfft::algorithm::DFT;
-/// use rustfft::FFT;
+/// use rustfft::algorithm::Dft;
+/// use rustfft::Fft;
 /// use rustfft::num_complex::Complex;
 /// use rustfft::num_traits::Zero;
 ///
 /// let mut input:  Vec<Complex<f32>> = vec![Zero::zero(); 1234];
 /// let mut output: Vec<Complex<f32>> = vec![Zero::zero(); 1234];
 ///
-/// let dft = DFT::new(1234, false);
+/// let dft = Dft::new(1234, false);
 /// dft.process(&mut input, &mut output);
 /// ~~~
-pub struct DFT<T> {
+pub struct Dft<T> {
     twiddles: Vec<Complex<T>>,
     inverse: bool,
 }
 
-impl<T: FFTnum> DFT<T> {
+impl<T: FftNum> Dft<T> {
     /// Preallocates necessary arrays and precomputes necessary data to efficiently compute DFT
     pub fn new(len: usize, inverse: bool) -> Self {
-        DFT {
+        Dft {
             twiddles: twiddles::generate_twiddle_factors(len, inverse),
             inverse: inverse
         }
@@ -60,7 +60,7 @@ impl<T: FFTnum> DFT<T> {
     }
 }
 
-impl<T: FFTnum> FFT<T> for DFT<T> {
+impl<T: FftNum> Fft<T> for Dft<T> {
     fn process(&self, input: &mut [Complex<T>], output: &mut [Complex<T>]) {
         verify_length(input, output, self.len());
 
@@ -74,13 +74,13 @@ impl<T: FFTnum> FFT<T> for DFT<T> {
         }
     }
 }
-impl<T> Length for DFT<T> {
+impl<T> Length for Dft<T> {
     #[inline(always)]
     fn len(&self) -> usize {
         self.twiddles.len()
     }
 }
-impl<T> IsInverse for DFT<T> {
+impl<T> IsInverse for Dft<T> {
     #[inline(always)]
     fn is_inverse(&self) -> bool {
         self.inverse
@@ -113,8 +113,8 @@ mod unit_tests {
         let n = 4;
 
         for len in 1..20 {
-            let dft_instance = DFT::new(len, false);
-            assert_eq!(dft_instance.len(), len, "DFT instance reported incorrect length");
+            let dft_instance = Dft::new(len, false);
+            assert_eq!(dft_instance.len(), len, "Dft instance reported incorrect length");
 
             let mut expected_input = random_signal(len * n);
             let mut actual_input = expected_input.clone();
@@ -140,7 +140,7 @@ mod unit_tests {
         }
 
         //verify that it doesn't crash if we have a length of 0
-        let zero_dft = DFT::new(0, false);
+        let zero_dft = Dft::new(0, false);
         let mut zero_input: Vec<Complex<f32>> = Vec::new();
         let mut zero_output: Vec<Complex<f32>> = Vec::new();
 
@@ -148,7 +148,7 @@ mod unit_tests {
     }
 
     /// Returns true if our `dft` function calculates the given spectrum from the
-    /// given signal, and if rustfft's DFT struct does the same
+    /// given signal, and if rustfft's Dft struct does the same
     fn test_dft_correct(signal: &[Complex<f32>], spectrum: &[Complex<f32>]) -> bool {
         assert_eq!(signal.len(), spectrum.len());
 
@@ -160,7 +160,7 @@ mod unit_tests {
 
         dft(&expected_signal, &mut expected_spectrum);
 
-        let dft_instance = DFT::new(signal.len(), false);
+        let dft_instance = Dft::new(signal.len(), false);
         dft_instance.process(&mut actual_signal, &mut actual_spectrum);
 
         return compare_vectors(spectrum, &expected_spectrum) && compare_vectors(spectrum, &actual_spectrum);

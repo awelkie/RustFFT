@@ -6,8 +6,8 @@ use std::sync::Arc;
 use rand::{StdRng, SeedableRng};
 use rand::distributions::{Normal, Distribution};
 
-use algorithm::{DFT, butterflies};
-use FFT;
+use algorithm::{Dft, butterflies};
+use Fft;
 
 
 /// The seed for the random number generator used to generate
@@ -36,14 +36,14 @@ pub fn compare_vectors(vec1: &[Complex<f32>], vec2: &[Complex<f32>]) -> bool {
     return (sse / vec1.len() as f32) < 0.1f32;
 }
 
-pub fn check_fft_algorithm(fft: &FFT<f32>, size: usize, inverse: bool) {
+pub fn check_fft_algorithm(fft: &Fft<f32>, size: usize, inverse: bool) {
     assert_eq!(fft.len(), size, "Algorithm reported incorrect size");
     assert_eq!(fft.is_inverse(), inverse, "Algorithm reported incorrect inverse value");
 
     let n = 5;
 
     //test the forward direction
-    let dft = DFT::new(size, inverse);
+    let dft = Dft::new(size, inverse);
 
     // set up buffers
     let mut expected_input = random_signal(size * n);
@@ -66,7 +66,7 @@ pub fn check_fft_algorithm(fft: &FFT<f32>, size: usize, inverse: bool) {
     assert!(compare_vectors(&expected_output, &multi_output), "process_multi() failed, length = {}, inverse = {}", size, inverse);
 }
 
-pub fn make_butterfly(len: usize, inverse: bool) -> Arc<butterflies::FFTButterfly<f32>> {
+pub fn make_butterfly(len: usize, inverse: bool) -> Arc<butterflies::FftButterfly<f32>> {
     match len {
         2 => Arc::new(butterflies::Butterfly2::new(inverse)),
         3 => Arc::new(butterflies::Butterfly3::new(inverse)),

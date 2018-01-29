@@ -1,10 +1,10 @@
 use num_traits::{FromPrimitive, Signed};
 
 /// Generic floating point number, implemnted for f32 and f64
-pub trait FFTnum: Copy + FromPrimitive + Signed + Sync + Send + 'static {}
+pub trait FftNum: Copy + FromPrimitive + Signed + Sync + Send + 'static {}
 
-impl FFTnum for f32 {}
-impl FFTnum for f64 {}
+impl FftNum for f32 {}
+impl FftNum for f64 {}
 
 
 #[inline(always)]

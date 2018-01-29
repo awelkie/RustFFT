@@ -1,10 +1,10 @@
 use num_complex::Complex;
 use num_traits::Zero;
 
-use common::{FFTnum, verify_length, verify_length_divisible};
+use common::{FftNum, verify_length, verify_length_divisible};
 
-use algorithm::butterflies::{Butterfly2, Butterfly4, Butterfly8, Butterfly16, FFTButterfly};
-use ::{Length, IsInverse, FFT};
+use algorithm::butterflies::{Butterfly2, Butterfly4, Butterfly8, Butterfly16, FftButterfly};
+use ::{Length, IsInverse, Fft};
 use twiddles;
 
 /// FFT algorithm optimized for power-of-two sizes
@@ -12,7 +12,7 @@ use twiddles;
 /// ~~~
 /// // Computes a forward FFT of size 4096
 /// use rustfft::algorithm::Radix4;
-/// use rustfft::FFT;
+/// use rustfft::Fft;
 /// use rustfft::num_complex::Complex;
 /// use rustfft::num_traits::Zero;
 ///
@@ -31,7 +31,7 @@ pub struct Radix4<T> {
     inverse: bool,
 }
 
-impl<T: FFTnum> Radix4<T> {
+impl<T: FftNum> Radix4<T> {
     /// Preallocates necessary arrays and precomputes necessary data to efficiently compute the power-of-two FFT
     pub fn new(len: usize, inverse: bool) -> Self {
         assert!(len.is_power_of_two(), "Radix4 algorithm requires a power-of-two input size. Got {}", len);
@@ -123,7 +123,7 @@ impl<T: FFTnum> Radix4<T> {
     }
 }
 
-impl<T: FFTnum> FFT<T> for Radix4<T> {
+impl<T: FftNum> Fft<T> for Radix4<T> {
     fn process(&self, input: &mut [Complex<T>], output: &mut [Complex<T>]) {
         verify_length(input, output, self.len());
 
@@ -154,7 +154,7 @@ impl<T> IsInverse for Radix4<T> {
 
 // after testing an iterative bit reversal algorithm, this recursive algorithm
 // was almost an order of magnitude faster at setting up
-fn prepare_radix4<T: FFTnum>(size: usize,
+fn prepare_radix4<T: FftNum>(size: usize,
                            signal: &[Complex<T>],
                            spectrum: &mut [Complex<T>],
                            stride: usize) {
@@ -190,7 +190,7 @@ fn prepare_radix4<T: FFTnum>(size: usize,
     }
 }
 
-unsafe fn butterfly_4<T: FFTnum>(data: &mut [Complex<T>],
+unsafe fn butterfly_4<T: FftNum>(data: &mut [Complex<T>],
                              twiddles: &[Complex<T>],
                              num_ffts: usize,
                              inverse: bool)

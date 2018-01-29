@@ -4,14 +4,14 @@ use std::f64;
 use num_complex::Complex;
 use num_traits::{FromPrimitive, One};
 
-use common::FFTnum;
+use common::FftNum;
 
-pub fn generate_twiddle_factors<T: FFTnum>(fft_len: usize, inverse: bool) -> Vec<Complex<T>> {
+pub fn generate_twiddle_factors<T: FftNum>(fft_len: usize, inverse: bool) -> Vec<Complex<T>> {
     (0..fft_len).map(|i| single_twiddle(i, fft_len, inverse)).collect()
 }
 
 #[inline(always)]
-pub fn single_twiddle<T: FFTnum>(i: usize, fft_len: usize, inverse: bool) -> Complex<T> {
+pub fn single_twiddle<T: FftNum>(i: usize, fft_len: usize, inverse: bool) -> Complex<T> {
     let constant = if inverse {
         2f64 * f64::consts::PI
     } else {
@@ -26,7 +26,7 @@ pub fn single_twiddle<T: FFTnum>(i: usize, fft_len: usize, inverse: bool) -> Com
     }
 }
 
-pub fn rotate_90<T: FFTnum>(value: Complex<T>, inverse:bool) -> Complex<T>
+pub fn rotate_90<T: FftNum>(value: Complex<T>, inverse:bool) -> Complex<T>
 {
     if inverse {
         Complex{re:-value.im, im: value.re}

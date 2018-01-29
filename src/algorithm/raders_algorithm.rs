@@ -4,11 +4,11 @@ use num_complex::Complex;
 use num_traits::Zero;
 use strength_reduce::StrengthReducedUsize;
 
-use common::{FFTnum, verify_length, verify_length_divisible};
+use common::{FftNum, verify_length, verify_length_divisible};
 
 use math_utils;
 use twiddles;
-use ::{Length, IsInverse, FFT};
+use ::{Length, IsInverse, Fft};
 
 /// Implementation of Rader's Algorithm
 ///
@@ -21,7 +21,7 @@ use ::{Length, IsInverse, FFT};
 /// ~~~
 /// // Computes a forward FFT of size 1201 (prime number), using Rader's Algorithm
 /// use rustfft::algorithm::RadersAlgorithm;
-/// use rustfft::{FFT, FFTplanner};
+/// use rustfft::{Fft, FftPlanner};
 /// use rustfft::num_complex::Complex;
 /// use rustfft::num_traits::Zero;
 ///
@@ -29,7 +29,7 @@ use ::{Length, IsInverse, FFT};
 /// let mut output: Vec<Complex<f32>> = vec![Zero::zero(); 1201];
 ///
 /// // plan a FFT of size n - 1 = 1200
-/// let mut planner = FFTplanner::new(false);
+/// let mut planner = FftPlanner::new(false);
 /// let inner_fft = planner.plan_fft(1200);
 ///
 /// let fft = RadersAlgorithm::new(1201, inner_fft);
@@ -41,7 +41,7 @@ use ::{Length, IsInverse, FFT};
 /// that it takes 2.5x more time to compute than a FFT of size 1200.
 
 pub struct RadersAlgorithm<T> {
-    inner_fft: Arc<FFT<T>>,
+    inner_fft: Arc<Fft<T>>,
     inner_fft_data: Box<[Complex<T>]>,
 
     primitive_root: usize,
@@ -50,15 +50,15 @@ pub struct RadersAlgorithm<T> {
     len: StrengthReducedUsize,
 }
 
-impl<T: FFTnum> RadersAlgorithm<T> {
-    /// Creates a FFT instance which will process inputs/outputs of size `len`. `inner_fft.len()` must be `len - 1`
+impl<T: FftNum> RadersAlgorithm<T> {
+    /// Creates a Fft instance which will process inputs/outputs of size `len`. `inner_fft.len()` must be `len - 1`
     ///
     /// Note that this constructor is quite expensive to run; This algorithm must run a FFT of size n - 1 within the
     /// constructor. This further underlines the fact that Rader's Algorithm is more expensive to run than other
     /// FFT algorithms
     ///
     /// Note also that if `len` is not prime, this algorithm may silently produce garbage output
-    pub fn new(len: usize, inner_fft: Arc<FFT<T>>) -> Self {
+    pub fn new(len: usize, inner_fft: Arc<Fft<T>>) -> Self {
         assert_eq!(len - 1, inner_fft.len(), "For raders algorithm, inner_fft.len() must be self.len() - 1. Expected {}, got {}", len - 1, inner_fft.len());
 
         let inner_fft_len = len - 1;
@@ -133,7 +133,7 @@ impl<T: FFTnum> RadersAlgorithm<T> {
     }
 }
 
-impl<T: FFTnum> FFT<T> for RadersAlgorithm<T> {
+impl<T: FftNum> Fft<T> for RadersAlgorithm<T> {
     fn process(&self, input: &mut [Complex<T>], output: &mut [Complex<T>]) {
         verify_length(input, output, self.len());
 
@@ -165,7 +165,7 @@ mod unit_tests {
     use super::*;
     use std::sync::Arc;
     use test_utils::check_fft_algorithm;
-    use algorithm::DFT;
+    use algorithm::Dft;
 
     #[test]
     fn test_raders() {
@@ -176,7 +176,7 @@ mod unit_tests {
     }
 
     fn test_raders_with_length(len: usize, inverse: bool) {
-        let inner_fft = Arc::new(DFT::new(len - 1, inverse));
+        let inner_fft = Arc::new(Dft::new(len - 1, inverse));
         let fft = RadersAlgorithm::new(len, inner_fft);
 
         check_fft_algorithm(&fft, len, inverse);
