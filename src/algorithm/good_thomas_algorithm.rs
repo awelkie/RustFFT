@@ -79,8 +79,8 @@ impl<T: FFTnum> GoodThomasAlgorithm<T> {
             height_inverse += width as i64;
         }
 
-        // NOTE: we are precomputing the input and output reordering indexes, because benchmarking shows that it's 10-20% faster for small sizes
-        // If you want to optimize for memory use or setup time instead of multiple-FFT speed, use the "main" good-thomas instance instead of the double-butterfly one
+        // NOTE: we are precomputing the input and output reordering indexes, because benchmarking shows that it's 10-20% faster
+        // If we wanted to optimize for memory use or setup time instead of multiple-FFT speed, we could compute these on the fly in the perform_fft() method
         let input_iter = (0..len)
                 .map(|i| (i % width, i / width))
                 .map(|(x, y)| (x * height + y * width) % len);
@@ -228,8 +228,8 @@ impl<T: FFTnum> GoodThomasAlgorithmDoubleButterfly<T> {
             height_inverse += width as i64;
         }
 
-        // NOTE: we are precomputing the input and output reordering indexes, because benchmarking shows that it's 10-20% faster for small sizes
-        // If you want to optimize for memory use or setup time instead of multiple-FFT speed, use the "main" good-thomas instance instead of the double-butterfly one
+        // NOTE: we are precomputing the input and output reordering indexes, because benchmarking shows that it's 10-20% faster
+        // If we wanted to optimize for memory use or setup time instead of multiple-FFT speed, we could compute these on the fly in the perform_fft() method
         let input_iter = (0..len)
                 .map(|i| (i % width, i / width))
                 .map(|(x, y)| (x * height + y * width) % len);
