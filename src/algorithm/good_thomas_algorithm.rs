@@ -14,8 +14,8 @@ use algorithm::butterflies::FFTButterfly;
 /// This algorithm factors a size n FFT into n1 * n2, where GCD(n1, n2) == 1
 ///
 /// Conceptually, this algorithm is very similar to the Mixed-Radix FFT, except because GCD(n1, n2) == 1 we can do some
-/// number theory trickery to reduce the number of floating-point multiplications and additions. It uses
-/// significantly less memory than the Mixed-Radix Algorithm, and is typically faster at sizes below 10,000 or so.
+/// number theory trickery to reduce the number of floating-point multiplications and additions. Additionally, It can
+/// be faster than Mixed-Radix at sizes below 10,000 or so.
 ///
 /// ~~~
 /// // Computes a forward FFT of size 1200, using the Good-Thomas Algorithm
@@ -44,8 +44,7 @@ pub struct GoodThomasAlgorithm<T> {
     height: usize,
     height_size_fft: Arc<FFT<T>>,
 
-    output_stride_width: usize,
-    output_stride_height: usize,
+    input_output_map: Box<[usize]>,
 
     inverse: bool,
 }
@@ -62,6 +61,7 @@ impl<T: FFTnum> GoodThomasAlgorithm<T> {
 
         let width = width_fft.len();
         let height = height_fft.len();
+        let len = width * height;
 
         // compute the nultiplicative inverse of width mod height and vice versa
         let (gcd, mut width_inverse, mut height_inverse) =
@@ -79,36 +79,36 @@ impl<T: FFTnum> GoodThomasAlgorithm<T> {
             height_inverse += width as i64;
         }
 
+        // NOTE: we are precomputing the input and output reordering indexes, because benchmarking shows that it's 10-20% faster for small sizes
+        // If you want to optimize for memory use or setup time instead of multiple-FFT speed, use the "main" good-thomas instance instead of the double-butterfly one
+        let input_iter = (0..len)
+                .map(|i| (i % width, i / width))
+                .map(|(x, y)| (x * height + y * width) % len);
+        let output_iter = (0..len)
+                .map(|i| (i % height, i / height))
+                .map(|(y, x)| (x * height * height_inverse as usize + y * width * width_inverse as usize) % len);
+
+        let input_output_map: Vec<usize> = input_iter.chain(output_iter).collect();
+
         GoodThomasAlgorithm {
             inverse: width_fft.is_inverse(),
 
-            width,
+            width: width,
             width_size_fft: width_fft,
 
-            height,
+            height: height,
             height_size_fft: height_fft,
-
-            output_stride_width: width_inverse as usize * width,
-            output_stride_height: height_inverse as usize * height,
+            
+            input_output_map: input_output_map.into_boxed_slice(),
         }
     }
 
     fn perform_fft(&self, input: &mut [Complex<T>], output: &mut [Complex<T>]) {
+        let (input_map, output_map) = self.input_output_map.split_at(self.len());
 
-        // copy the input into the output buffer, using the "wrapping_iter" iterator to reorder the elements
-        let len = self.width * self.height;
-        for (i, output_chunk) in output.chunks_mut(self.width).enumerate() {
-            
-            let mut input_index = i * self.width;
-            for output_element in output_chunk {
-                *output_element = input[input_index];
-
-                // Move the input index along by the stride, and wrap it if it goes past the end of the array
-                input_index += self.height;
-                if input_index >= len {
-                    input_index -= len;
-                }
-            }
+        // copy the input into the output buffer
+        for (output_element, &input_index) in output.iter_mut().zip(input_map.iter()) {
+            *output_element = input[input_index];
         }
 
         // run FFTs of size `width`
@@ -120,26 +120,9 @@ impl<T: FFTnum> GoodThomasAlgorithm<T> {
         // run FFTs of size 'height'
         self.height_size_fft.process_multi(output, input);
 
-        // copy to the output, again 
-        let mut output_start_index = 0;
-        for input_chunk in input.chunks(self.height) {
-
-            let mut output_index = output_start_index;
-            for input_element in input_chunk {
-                output[output_index] = *input_element;
-
-                // Move the output index along by the stride, and wrap it if it goes past the end of the array
-                output_index += self.output_stride_width;
-                if output_index >= len {
-                    output_index -= len;
-                }
-            }
-
-            // Move the start index for the next row along by the stride, and wrap it if it goes past the end of the array
-            output_start_index += self.output_stride_height;
-            if output_start_index >= len {
-                output_start_index -= len;
-            }
+        // copy to the output, using our output redordeing mapping
+        for (input_element, &output_index) in input.iter().zip(output_map.iter()) {
+            output[output_index] = *input_element;
         }
     }
 }
@@ -179,9 +162,8 @@ impl<T> IsInverse for GoodThomasAlgorithm<T> {
 /// This algorithm factors a size n FFT into n1 * n2, where GCD(n1, n2) == 1
 ///
 /// Conceptually, this algorithm is very similar to the Mixed-Radix FFT, except because GCD(n1, n2) == 1 we can do some
-/// number theory trickery to reduce the number of floating-point multiplications and additions. It uses
-/// less memory than the Mixed-Radix Double Butterfly Algorithm, and typically performs better, especially at small
-/// sizes.
+/// number theory trickery to reduce the number of floating-point multiplications and additions. It typically performs
+/// better than Mixed-Radix Double Butterfly Algorithm, especially at small sizes.
 ///
 /// ~~~
 /// // Computes a forward FFT of size 56, using the Good-Thoma Butterfly Algorithm
