@@ -36,7 +36,7 @@ pub fn compare_vectors(vec1: &[Complex<f32>], vec2: &[Complex<f32>]) -> bool {
     return (sse / vec1.len() as f32) < 0.1f32;
 }
 
-pub fn check_fft_algorithm(fft: &FFT<f32>, size: usize, inverse: bool) {
+pub fn check_fft_algorithm(fft: &dyn FFT<f32>, size: usize, inverse: bool) {
     assert_eq!(fft.len(), size, "Algorithm reported incorrect size");
     assert_eq!(fft.is_inverse(), inverse, "Algorithm reported incorrect inverse value");
 
@@ -66,7 +66,7 @@ pub fn check_fft_algorithm(fft: &FFT<f32>, size: usize, inverse: bool) {
     assert!(compare_vectors(&expected_output, &multi_output), "process_multi() failed, length = {}, inverse = {}", size, inverse);
 }
 
-pub fn make_butterfly(len: usize, inverse: bool) -> Arc<butterflies::FFTButterfly<f32>> {
+pub fn make_butterfly(len: usize, inverse: bool) -> Arc<dyn butterflies::FFTButterfly<f32>> {
     match len {
         2 => Arc::new(butterflies::Butterfly2::new(inverse)),
         3 => Arc::new(butterflies::Butterfly3::new(inverse)),

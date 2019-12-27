@@ -41,7 +41,7 @@ use ::{Length, IsInverse, FFT};
 /// that it takes 2.5x more time to compute than a FFT of size 1200.
 
 pub struct RadersAlgorithm<T> {
-    inner_fft: Arc<FFT<T>>,
+    inner_fft: Arc<dyn FFT<T>>,
     inner_fft_data: Box<[Complex<T>]>,
 
     primitive_root: usize,
@@ -58,7 +58,7 @@ impl<T: FFTnum> RadersAlgorithm<T> {
     /// FFT algorithms
     ///
     /// Note also that if `len` is not prime, this algorithm may silently produce garbage output
-    pub fn new(len: usize, inner_fft: Arc<FFT<T>>) -> Self {
+    pub fn new(len: usize, inner_fft: Arc<dyn FFT<T>>) -> Self {
         assert_eq!(len - 1, inner_fft.len(), "For raders algorithm, inner_fft.len() must be self.len() - 1. Expected {}, got {}", len - 1, inner_fft.len());
 
         let inner_fft_len = len - 1;
