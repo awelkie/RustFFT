@@ -57,6 +57,8 @@
 //!
 //! Elements in the output are ordered by ascending frequency, with the first element corresponding to frequency 0.
 
+#![allow(bare_trait_objects)]
+
 pub extern crate num_complex;
 pub extern crate num_traits;
 extern crate num_integer;
